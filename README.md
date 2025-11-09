@@ -14,3 +14,11 @@ A key challenge was ensuring a smooth user experience even when network conditio
 ### How would you improve your app's UI or performance in future versions?
 For future improvements, I would focus on enhancing the UI with more engaging animations and a more polished design. Performance-wise, I would implement a caching mechanism to store API responses, reducing the number of network requests and making the app feel faster. I would also add more robust error handling, such as distinguishing between different types of network errors and providing more specific feedback to the user.
 
+## Output Images
+![City Data Fetch](activity6/cityDataFetch.png)
+![Default](activity6/default.png)
+![Loading Indicator](activity6/loadingIndicator.png)
+![News Data Fetch](activity6/newsDataFetch.png)
+![No Internet Notification](activity6/noInternetNotification.png)
+![No Internet Notification 2](activity6/noInternetNotification2.png)
+![Weather Data Fetch](activity6/weatherDataFetch.png)
