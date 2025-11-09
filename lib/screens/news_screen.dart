@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:apiconnectapp/viewmodels/news_viewmodel.dart';
 import 'package:apiconnectapp/widgets/article_tile.dart';
+import 'package:apiconnectapp/utils/snackbar_helper.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -24,11 +25,15 @@ class _NewsScreenState extends State<NewsScreen> {
   Widget build(BuildContext context) {
     return Consumer<NewsViewModel>(
       builder: (context, viewModel, child) {
+        // Show snackbar when there's an error
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (viewModel.errorMessage != null) {
+            SnackbarHelper.showError(context, viewModel.errorMessage!);
+          }
+        });
+
         if (viewModel.isLoading) {
           return const Center(child: CircularProgressIndicator());
-        }
-        if (viewModel.errorMessage != null) {
-          return Center(child: Text(viewModel.errorMessage!));
         }
         if (viewModel.articles.isEmpty) {
           return const Center(child: Text('No news available.'));

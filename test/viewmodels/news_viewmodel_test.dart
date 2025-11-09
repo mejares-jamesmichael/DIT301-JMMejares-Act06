@@ -9,10 +9,16 @@ void main() {
   group('NewsViewModel', () {
     late NewsViewModel newsViewModel;
     late MockNewsApi mockNewsApi;
+    late MockConnectivityService mockConnectivityService;
 
     setUp(() {
       mockNewsApi = MockNewsApi();
-      newsViewModel = NewsViewModel(newsApi: mockNewsApi, apiKey: 'test-key');
+      mockConnectivityService = MockConnectivityService();
+      newsViewModel = NewsViewModel(
+        newsApi: mockNewsApi,
+        apiKey: 'test-key',
+        connectivityService: mockConnectivityService,
+      );
     });
 
     test('fetchNews updates articles and loading state on success', () async {
@@ -33,6 +39,9 @@ void main() {
       );
 
       when(
+        mockConnectivityService.hasInternetConnection(),
+      ).thenAnswer((_) async => true);
+      when(
         mockNewsApi.getTopHeadlines('us', 'test-key'),
       ).thenAnswer((_) async => mockNewsResponse);
 
@@ -50,6 +59,9 @@ void main() {
 
     test('fetchNews sets error message on failure', () async {
       when(
+        mockConnectivityService.hasInternetConnection(),
+      ).thenAnswer((_) async => true);
+      when(
         mockNewsApi.getTopHeadlines('us', 'test-key'),
       ).thenThrow(Exception('Failed to fetch data'));
 
@@ -64,6 +76,43 @@ void main() {
         newsViewModel.errorMessage,
         'Failed to load news: Exception: Failed to fetch data',
       );
+    });
+
+    test('fetchNews sets error message when no internet connection', () async {
+      when(
+        mockConnectivityService.hasInternetConnection(),
+      ).thenAnswer((_) async => false);
+
+      await newsViewModel.fetchNews();
+
+      expect(
+        newsViewModel.errorMessage,
+        'No internet connection. Please check your network.',
+      );
+      verifyNever(mockNewsApi.getTopHeadlines(any, any));
+    });
+
+    test('fetchNews sets error message when articles array is empty', () async {
+      final mockNewsResponse = NewsResponse(
+        status: 'ok',
+        totalResults: 0,
+        articles: [],
+      );
+
+      when(
+        mockConnectivityService.hasInternetConnection(),
+      ).thenAnswer((_) async => true);
+      when(
+        mockNewsApi.getTopHeadlines('us', 'test-key'),
+      ).thenAnswer((_) async => mockNewsResponse);
+
+      await newsViewModel.fetchNews();
+
+      expect(
+        newsViewModel.errorMessage,
+        'No news articles available at this time.',
+      );
+      expect(newsViewModel.articles, isEmpty);
     });
   });
 }

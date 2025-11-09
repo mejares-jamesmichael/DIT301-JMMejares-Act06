@@ -32,12 +32,17 @@ A Flutter application that demonstrates how to connect to online REST APIs, pars
     ```
 
 3.  **Create a `.env` file:**
-    In the root of the project, create a file named `.env` and add your API keys:
+    Copy the `.env.example` template and add your API keys:
+    ```bash
+    cp .env.example .env
+    ```
+    Then edit `.env` and replace the placeholder values with your actual API keys:
     ```
     NEWS_API_KEY=YOUR_NEWSAPI_API_KEY
     OPENWEATHERMAP_API_KEY=YOUR_OPENWEATHERMAP_API_KEY
     ```
-    Replace `YOUR_NEWSAPI_API_KEY` and `YOUR_OPENWEATHERMAP_API_KEY` with your actual API keys.
+    
+    ⚠️ **IMPORTANT:** The `.env` file is git-ignored and should NEVER be committed to version control.
 
 4.  **Generate code:**
     Run the build runner to generate necessary `.g.dart` files for `json_serializable` and `retrofit`:
@@ -69,10 +74,13 @@ lib/
 │   └── weather_screen.dart     # UI for the weather display
 ├── services/
 │   ├── api_client.dart         # Dio client setup and instance
+│   ├── connectivity_service.dart # Internet connectivity checker
 │   ├── news_api.dart           # Retrofit service definition for News API
 │   ├── news_api_service.dart   # NewsResponse and Article models
 │   ├── weather_api.dart        # Retrofit service definition for Weather API
 │   └── weather_api_service.dart# WeatherResponse, WeatherMain, WeatherCondition models
+├── utils/
+│   └── snackbar_helper.dart    # Helper for showing snackbar messages
 ├── viewmodels/
 │   ├── news_viewmodel.dart     # ChangeNotifier for news data and logic
 │   └── weather_viewmodel.dart  # ChangeNotifier for weather data and logic
@@ -94,3 +102,49 @@ A key challenge was ensuring a smooth user experience even when network conditio
 
 ### How would you improve your app's UI or performance in future versions?
 For future improvements, I would focus on enhancing the UI with more engaging animations and a more polished design. Performance-wise, I would implement a caching mechanism to store API responses, reducing the number of network requests and making the app feel faster. I would also add more robust error handling, such as distinguishing between different types of network errors and providing more specific feedback to the user.
+
+## Security
+
+### Secret Management with Gitleaks
+
+This project uses [Gitleaks](https://github.com/gitleaks/gitleaks) to prevent sensitive data (API keys, passwords, tokens) from being committed to the repository.
+
+#### Pre-commit Hook
+
+A git pre-commit hook automatically scans staged files for secrets before each commit:
+- ✅ Commits are **allowed** if no secrets are detected
+- ❌ Commits are **blocked** if secrets are found
+
+#### Manual Scanning
+
+You can manually scan the repository anytime:
+
+```bash
+# Scan entire repository history
+gitleaks detect --source . --verbose
+
+# Scan only staged files (what the pre-commit hook does)
+gitleaks protect --verbose --redact --staged
+
+# Scan with specific configuration
+gitleaks detect --config .gitleaks.toml --verbose
+```
+
+#### Best Practices
+
+1. **Always use `.env` for secrets** - Never hardcode API keys in source files
+2. **Check `.env.example`** - Use this template when setting up the project
+3. **Never commit `.env`** - It's already in `.gitignore`
+4. **Rotate leaked keys immediately** - If you accidentally commit a secret, revoke and regenerate it
+
+#### If Secrets Are Detected
+
+If gitleaks blocks your commit:
+
+1. Remove the secret from the staged file
+2. Move it to `.env` instead
+3. Reference it using `dotenv.env['KEY_NAME']`
+4. Stage the corrected file and commit again
+
+**Note:** If secrets were previously committed to git history, they must be rotated/revoked as they may have been exposed.
+

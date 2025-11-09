@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:apiconnectapp/models/article.dart';
 import 'package:apiconnectapp/services/api_client.dart';
 import 'package:apiconnectapp/services/news_api.dart';
+import 'package:apiconnectapp/services/connectivity_service.dart';
 
 class NewsViewModel extends ChangeNotifier {
   List<Article> _articles = [];
@@ -16,13 +18,27 @@ class NewsViewModel extends ChangeNotifier {
 
   late NewsApi _newsApi;
   String? _apiKey;
+  late ConnectivityService _connectivityService;
 
-  NewsViewModel({NewsApi? newsApi, String? apiKey}) {
+  NewsViewModel({
+    NewsApi? newsApi,
+    String? apiKey,
+    ConnectivityService? connectivityService,
+  }) {
     _newsApi = newsApi ?? NewsApi(ApiClient.dio);
     _apiKey = apiKey;
+    _connectivityService = connectivityService ?? ConnectivityService();
   }
 
   Future<void> fetchNews() async {
+    // Check internet connectivity
+    final hasInternet = await _connectivityService.hasInternetConnection();
+    if (!hasInternet) {
+      _errorMessage = 'No internet connection. Please check your network.';
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -36,10 +52,19 @@ class NewsViewModel extends ChangeNotifier {
         'us', // country
         apiKey,
       );
-      _articles = newsResponse.articles;
+
+      // Check if articles array is empty
+      if (newsResponse.articles.isEmpty) {
+        _errorMessage = 'No news articles available at this time.';
+      } else {
+        _articles = newsResponse.articles;
+      }
+    } on DioException catch (e) {
+      _errorMessage = e.message ?? 'Failed to load news data.';
+      // Keep existing articles on error
     } catch (e) {
       _errorMessage = 'Failed to load news: $e';
-      _articles = [];
+      // Keep existing articles on error
     } finally {
       _isLoading = false;
       notifyListeners();

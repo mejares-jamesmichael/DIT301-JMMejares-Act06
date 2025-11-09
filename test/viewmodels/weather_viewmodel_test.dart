@@ -10,12 +10,15 @@ void main() {
   group('WeatherViewModel', () {
     late WeatherViewModel weatherViewModel;
     late MockWeatherApi mockWeatherApi;
+    late MockConnectivityService mockConnectivityService;
 
     setUp(() {
       mockWeatherApi = MockWeatherApi();
+      mockConnectivityService = MockConnectivityService();
       weatherViewModel = WeatherViewModel(
         weatherApi: mockWeatherApi,
         apiKey: 'test-key',
+        connectivityService: mockConnectivityService,
       );
     });
 
@@ -41,6 +44,9 @@ void main() {
       );
 
       when(
+        mockConnectivityService.hasInternetConnection(),
+      ).thenAnswer((_) async => true);
+      when(
         mockWeatherApi.getWeather('London', 'test-key', 'metric'),
       ).thenAnswer((_) async => mockWeatherResponse);
 
@@ -60,6 +66,9 @@ void main() {
 
     test('fetchWeather sets error message on failure', () async {
       when(
+        mockConnectivityService.hasInternetConnection(),
+      ).thenAnswer((_) async => true);
+      when(
         mockWeatherApi.getWeather('London', 'test-key', 'metric'),
       ).thenThrow(Exception('Failed to fetch data'));
 
@@ -74,6 +83,33 @@ void main() {
         weatherViewModel.errorMessage,
         'Failed to load weather: Exception: Failed to fetch data',
       );
+    });
+
+    test(
+      'fetchWeather sets error message when no internet connection',
+      () async {
+        when(
+          mockConnectivityService.hasInternetConnection(),
+        ).thenAnswer((_) async => false);
+
+        await weatherViewModel.fetchWeather('London');
+
+        expect(
+          weatherViewModel.errorMessage,
+          'No internet connection. Please check your network.',
+        );
+        expect(weatherViewModel.weather, null);
+        verifyNever(mockWeatherApi.getWeather(any, any, any));
+      },
+    );
+
+    test('fetchWeather sets error message when city is empty', () async {
+      await weatherViewModel.fetchWeather('');
+
+      expect(weatherViewModel.errorMessage, 'Please enter a city name.');
+      expect(weatherViewModel.weather, null);
+      verifyNever(mockConnectivityService.hasInternetConnection());
+      verifyNever(mockWeatherApi.getWeather(any, any, any));
     });
   });
 }

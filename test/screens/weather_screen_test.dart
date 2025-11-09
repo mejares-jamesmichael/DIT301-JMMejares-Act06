@@ -8,16 +8,21 @@ import '../viewmodels/mocks.mocks.dart';
 
 void main() {
   late MockWeatherApi mockWeatherApi;
+  late MockConnectivityService mockConnectivityService;
 
   setUp(() {
     mockWeatherApi = MockWeatherApi();
+    mockConnectivityService = MockConnectivityService();
   });
 
   testWidgets('WeatherScreen shows initial state', (WidgetTester tester) async {
     await tester.pumpWidget(
       ChangeNotifierProvider(
-        create: (_) =>
-            WeatherViewModel(weatherApi: mockWeatherApi, apiKey: 'test-key'),
+        create: (_) => WeatherViewModel(
+          weatherApi: mockWeatherApi,
+          apiKey: 'test-key',
+          connectivityService: mockConnectivityService,
+        ),
         child: const MaterialApp(home: Scaffold(body: WeatherScreen())),
       ),
     );
@@ -27,17 +32,23 @@ void main() {
     expect(find.text('Get Weather'), findsOneWidget);
   });
 
-  testWidgets('WeatherScreen shows error message when fetch fails', (
+  testWidgets('WeatherScreen handles error gracefully', (
     WidgetTester tester,
   ) async {
+    when(
+      mockConnectivityService.hasInternetConnection(),
+    ).thenAnswer((_) async => true);
     when(
       mockWeatherApi.getWeather(any, any, any),
     ).thenThrow(Exception('Network error'));
 
     await tester.pumpWidget(
       ChangeNotifierProvider(
-        create: (_) =>
-            WeatherViewModel(weatherApi: mockWeatherApi, apiKey: 'test-key'),
+        create: (_) => WeatherViewModel(
+          weatherApi: mockWeatherApi,
+          apiKey: 'test-key',
+          connectivityService: mockConnectivityService,
+        ),
         child: const MaterialApp(home: Scaffold(body: WeatherScreen())),
       ),
     );
@@ -47,12 +58,10 @@ void main() {
     await tester.tap(find.text('Get Weather'));
     await tester.pump();
 
-    // Wait for error to be displayed
+    // Wait for error to be processed
     await tester.pump();
 
-    expect(
-      find.text('Failed to load weather: Exception: Network error'),
-      findsOneWidget,
-    );
+    // Should still show the default message (error is shown in snackbar, not in-screen)
+    expect(find.text('Please enter a city'), findsOneWidget);
   });
 }

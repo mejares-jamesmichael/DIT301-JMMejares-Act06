@@ -9,22 +9,31 @@ import '../viewmodels/mocks.mocks.dart';
 
 void main() {
   late MockNewsApi mockNewsApi;
+  late MockConnectivityService mockConnectivityService;
 
   setUp(() {
     mockNewsApi = MockNewsApi();
+    mockConnectivityService = MockConnectivityService();
   });
 
-  testWidgets('NewsScreen shows error message when fetch fails', (
+  testWidgets('NewsScreen handles error and shows empty state', (
     WidgetTester tester,
   ) async {
     // Mock the API to throw an error
+    when(
+      mockConnectivityService.hasInternetConnection(),
+    ).thenAnswer((_) async => true);
     when(
       mockNewsApi.getTopHeadlines(any, any),
     ).thenThrow(Exception('Network error'));
 
     await tester.pumpWidget(
       ChangeNotifierProvider(
-        create: (_) => NewsViewModel(newsApi: mockNewsApi, apiKey: 'test-key'),
+        create: (_) => NewsViewModel(
+          newsApi: mockNewsApi,
+          apiKey: 'test-key',
+          connectivityService: mockConnectivityService,
+        ),
         child: const MaterialApp(home: Scaffold(body: NewsScreen())),
       ),
     );
@@ -32,26 +41,31 @@ void main() {
     // Wait for the initial loading
     await tester.pump();
 
-    // Wait for the error to be displayed
+    // Wait for the error to be processed
     await tester.pump();
 
-    expect(
-      find.text('Failed to load news: Exception: Network error'),
-      findsOneWidget,
-    );
+    // Should show empty state (error is shown in snackbar, not in-screen)
+    expect(find.text('No news available.'), findsOneWidget);
   });
 
   testWidgets('NewsScreen shows "No news available" when articles are empty', (
     WidgetTester tester,
   ) async {
     // Mock the API to return empty news
+    when(
+      mockConnectivityService.hasInternetConnection(),
+    ).thenAnswer((_) async => true);
     when(mockNewsApi.getTopHeadlines(any, any)).thenAnswer(
       (_) async => NewsResponse(status: 'ok', totalResults: 0, articles: []),
     );
 
     await tester.pumpWidget(
       ChangeNotifierProvider(
-        create: (_) => NewsViewModel(newsApi: mockNewsApi, apiKey: 'test-key'),
+        create: (_) => NewsViewModel(
+          newsApi: mockNewsApi,
+          apiKey: 'test-key',
+          connectivityService: mockConnectivityService,
+        ),
         child: const MaterialApp(home: Scaffold(body: NewsScreen())),
       ),
     );

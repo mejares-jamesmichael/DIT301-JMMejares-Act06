@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:apiconnectapp/models/weather.dart';
 import 'package:apiconnectapp/services/api_client.dart';
 import 'package:apiconnectapp/services/weather_api.dart';
+import 'package:apiconnectapp/services/connectivity_service.dart';
 
 class WeatherViewModel extends ChangeNotifier {
   Weather? _weather;
@@ -16,13 +18,34 @@ class WeatherViewModel extends ChangeNotifier {
 
   late WeatherApi _weatherApi;
   String? _apiKey;
+  late ConnectivityService _connectivityService;
 
-  WeatherViewModel({WeatherApi? weatherApi, String? apiKey}) {
+  WeatherViewModel({
+    WeatherApi? weatherApi,
+    String? apiKey,
+    ConnectivityService? connectivityService,
+  }) {
     _weatherApi = weatherApi ?? WeatherApi(ApiClient.dio);
     _apiKey = apiKey;
+    _connectivityService = connectivityService ?? ConnectivityService();
   }
 
   Future<void> fetchWeather(String city) async {
+    // Validate city input
+    if (city.trim().isEmpty) {
+      _errorMessage = 'Please enter a city name.';
+      notifyListeners();
+      return;
+    }
+
+    // Check internet connectivity
+    final hasInternet = await _connectivityService.hasInternetConnection();
+    if (!hasInternet) {
+      _errorMessage = 'No internet connection. Please check your network.';
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -38,12 +61,21 @@ class WeatherViewModel extends ChangeNotifier {
         'metric',
       );
 
-      _weather = Weather(
-        name: weatherResponse.name,
-        temperature: weatherResponse.main.temp,
-        description: weatherResponse.weather[0].description,
-        icon: weatherResponse.weather[0].icon,
-      );
+      // Check if weather data is empty
+      if (weatherResponse.weather.isEmpty) {
+        _errorMessage = 'No weather data available for this city.';
+        _weather = null;
+      } else {
+        _weather = Weather(
+          name: weatherResponse.name,
+          temperature: weatherResponse.main.temp,
+          description: weatherResponse.weather[0].description,
+          icon: weatherResponse.weather[0].icon,
+        );
+      }
+    } on DioException catch (e) {
+      _errorMessage = e.message ?? 'Failed to load weather data.';
+      _weather = null;
     } catch (e) {
       _errorMessage = 'Failed to load weather: $e';
       _weather = null;

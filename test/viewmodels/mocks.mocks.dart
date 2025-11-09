@@ -6,6 +6,7 @@
 import 'dart:async' as _i5;
 
 import 'package:apiconnectapp/models/article.dart' as _i3;
+import 'package:apiconnectapp/services/connectivity_service.dart' as _i7;
 import 'package:apiconnectapp/services/news_api.dart' as _i6;
 import 'package:apiconnectapp/services/weather_api.dart' as _i4;
 import 'package:apiconnectapp/services/weather_api_service.dart' as _i2;
@@ -86,4 +87,22 @@ class MockNewsApi extends _i1.Mock implements _i6.NewsApi {
             ),
           )
           as _i5.Future<_i3.NewsResponse>);
+}
+
+/// A class which mocks [ConnectivityService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockConnectivityService extends _i1.Mock
+    implements _i7.ConnectivityService {
+  MockConnectivityService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i5.Future<bool> hasInternetConnection() =>
+      (super.noSuchMethod(
+            Invocation.method(#hasInternetConnection, []),
+            returnValue: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
 }

@@ -1,0 +1,14 @@
+# Gitleaks configuration for APIConnectApp
+title = "gitleaks config for APIConnectApp"
+
+[extend]
+# useDefault will extend the base configuration with the default gitleaks config:
+# https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+useDefault = true
+
+[allowlist]
+description = "Allowlisted files"
+paths = [
+  '''.env.example''',  # Allow .env.example template
+  '''SECURITY.md''',   # Allow security documentation with example patterns
+]
