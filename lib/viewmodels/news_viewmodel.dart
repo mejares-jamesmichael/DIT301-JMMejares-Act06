@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:apiconnectapp/models/article.dart';
 import 'package:apiconnectapp/services/api_client.dart';
-import 'package:apiconnectapp/services/news_api_service.dart';
+import 'package:apiconnectapp/services/news_api.dart';
 
 class NewsViewModel extends ChangeNotifier {
   List<Article> _articles = [];
@@ -13,7 +14,13 @@ class NewsViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final NewsApiService _newsApiService = NewsApiService(ApiClient.dio);
+  late NewsApi _newsApi;
+  String? _apiKey;
+
+  NewsViewModel({NewsApi? newsApi, String? apiKey}) {
+    _newsApi = newsApi ?? NewsApi(ApiClient.dio);
+    _apiKey = apiKey;
+  }
 
   Future<void> fetchNews() async {
     _isLoading = true;
@@ -21,9 +28,13 @@ class NewsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final newsResponse = await _newsApiService.getTopHeadlines(
+      final apiKey = _apiKey ?? dotenv.env['NEWS_API_KEY'];
+      if (apiKey == null) {
+        throw Exception('NEWS_API_KEY not found in .env file');
+      }
+      final newsResponse = await _newsApi.getTopHeadlines(
         'us', // country
-        'YOUR_NEWSAPI_API_KEY', // TODO: Replace with actual API key
+        apiKey,
       );
       _articles = newsResponse.articles;
     } catch (e) {

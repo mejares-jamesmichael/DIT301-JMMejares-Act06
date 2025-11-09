@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:apiconnectapp/models/weather.dart';
 import 'package:apiconnectapp/services/api_client.dart';
-import 'package:apiconnectapp/services/weather_api_service.dart';
+import 'package:apiconnectapp/services/weather_api.dart';
 
 class WeatherViewModel extends ChangeNotifier {
   Weather? _weather;
@@ -13,7 +14,13 @@ class WeatherViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final WeatherApiService _weatherApiService = WeatherApiService(ApiClient.dio);
+  late WeatherApi _weatherApi;
+  String? _apiKey;
+
+  WeatherViewModel({WeatherApi? weatherApi, String? apiKey}) {
+    _weatherApi = weatherApi ?? WeatherApi(ApiClient.dio);
+    _apiKey = apiKey;
+  }
 
   Future<void> fetchWeather(String city) async {
     _isLoading = true;
@@ -21,9 +28,13 @@ class WeatherViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final weatherResponse = await _weatherApiService.getWeather(
+      final apiKey = _apiKey ?? dotenv.env['OPENWEATHERMAP_API_KEY'];
+      if (apiKey == null) {
+        throw Exception('OPENWEATHERMAP_API_KEY not found in .env file');
+      }
+      final weatherResponse = await _weatherApi.getWeather(
         city,
-        'YOUR_OPENWEATHERMAP_API_KEY', // TODO: Replace with actual API key
+        apiKey,
         'metric',
       );
 
